@@ -19,7 +19,7 @@
 *           - Implement optional shadows
 */
 class EasyGL {
-    constructor(htmlCanvasElement = null) {
+    constructor(htmlCanvasElement = null, clearColor=new vec4(.1,.1,.1,1)) {
         //Make sure htmlCanvasElement is not null.
         if (htmlCanvasElement == null) { console.error("Cannot instantiate GL object without canvasElement"); return null;}
         this.htmlCanvasElement = htmlCanvasElement;
@@ -42,7 +42,7 @@ class EasyGL {
         this._updateViewMatrix();
 
         //Environment Settings
-        this.clearColor = new vec4(0,0,0,1);
+        this.clearColor = clearColor;
         this.ambientLightLevel = 0.25;        //Minimum light level ranging from 0.01 to 0.99
         this.directionalLighting = true;      //Enable/disable directional lighting & use of normals;
         this.directionalLightingDirection = new vec4(0.74, 0.6, 0.4);
@@ -68,6 +68,7 @@ class EasyGL {
         this.clear();
     }
 
+    //Shader Indertnal Functions
     __loadShader(type, source)//helper function used by _initShader() and _initPickerShader()
      {
         const shader = this.gl.createShader(type);
@@ -206,10 +207,14 @@ class EasyGL {
 
 
     //Rendering Functions
-    clear() //Clear the screen to default color
+    clear(tempClearColor_Vec4 = null) //Clear the screen to default color
     {
         // Clear the canvas before we start drawing on it.
-        this.gl.clearColor(this.clearColor.x, this.clearColor.y, this.clearColor.z, this.clearColor.a);    // Clear to white, fully opaque
+        if (tempClearColor_Vec4 instanceof vec4) {
+            this.gl.clearColor(tempClearColor_Vec4.x, tempClearColor_Vec4.y, tempClearColor_Vec4.z, tempClearColor_Vec4.a);    // Clear to temp color
+        } else {
+            this.gl.clearColor(this.clearColor.x, this.clearColor.y, this.clearColor.z, this.clearColor.a);    // Clear to this.clearColor
+        }
         this.gl.clearDepth(1);                   // Clear everything
 
         //Enable depth testing & blending
@@ -219,15 +224,10 @@ class EasyGL {
         this.gl.depthMask(true);
         this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
         
-        if (this.renderReverseFaces == true)
-        {
-            this.gl.disable(this.gl.CULL_FACE);
-        } else {
-            this.gl.enable(this.gl.CULL_FACE);
-        }
+        if (this.renderReverseFaces == true) { this.gl.disable(this.gl.CULL_FACE);
+        } else {                                this.gl.enable(this.gl.CULL_FACE); }
         
-    
-        
+        //Clearing color and depth buffer
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
     
         //Set Viewport
@@ -640,6 +640,108 @@ class EasyGL {
             }
         }
     }
+    setObjectShape(objectID, vertices=cubeVertices, indices=cubeIndices, normals=cubeNormals, colors=cubeColors)
+    {
+        //Case statements to allow for passing null and undefined values
+        if (objectID == null || objectID == undefined)
+        {
+            console.error("EasyGL.setObjectShape() cannot set without objectID (Which object..?)");
+            return;
+        }
+
+
+        //Handle indices & check for correct format
+        if (indices != null && indices != undefined && indices.length % 3 != 0) {console.error("Cannot make object with non-multiple of 3 length indices"); return;}
+
+        //Handle vertices & check for correct format & Data
+        if (vertices instanceof Array && vertices.length > 0)
+        {
+            if (vertices[0] instanceof vec4)
+            {
+                //array of vec4s
+                let vs = vertices;
+                vertices = [];
+                for (let i=0; i<v.length; v++)
+                {
+                    vertices.push(vs.x, vs.y, vs.z);
+                }
+            } else {
+                //assuming vertices are correctly formatted.
+                if (vertices.length % 3 != 0) {console.error("Cannot make object with non-multiple of 3 length vertices"); return;}
+            }
+        }
+
+        //Handle normals & check for correct format & Data
+        if (normals instanceof Array && normals.length > 0)
+        {
+            if (normals[0] instanceof vec4)
+            {
+                //array of vec4s
+                const vs = normals;
+                normals = [];
+                for (let i=0; i<v.length; v++)
+                {
+                    normals.push(vs.x, vs.y, vs.z);
+                }
+            } else {
+                //assuming vertices are correctly formatted.
+                if (normals.length % 3 != 0) {console.error("Cannot make object with non-multiple of 3 length normals"); return;}
+            }
+        }
+
+        //Handle Colors. Can either be:
+        if (colors instanceof vec4)
+        {
+            //case 1: colors = vec4, so we need to expand to all vertices. 
+            let c = colors;
+            colors = [];
+            for (let i=0; i<vertices.length; i++)
+            {
+                colors.push(c.x, c.y, c.z, c.a);
+            }
+        } else if (colors[0] instanceof vec4)
+        {
+            //case 2: colors = [ vec4, vec4, vec4...]
+            let cs = colors;
+            colors = [];
+            for (let i=0; i<cs.length; i++)
+            {
+                colors.push(cs.x, cs.y, cs.z, cs.a);
+            }
+        }
+
+
+        const objectData = this.objects.get(objectID);
+        if (objectData == null) { console.log("Object: "+objectID+" does not exist. Cannot set shape."); return;}
+
+
+        if (vertices != null && vertices != undefined)
+        {
+            //objectData.verticesBuffer = this.gl.createBuffer();
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, objectData.verticesBuffer);
+            this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(vertices), this.gl.STATIC_DRAW);
+        }
+        if (normals != null && normals != undefined)
+        {
+            //objectData.normalsBuffer = this.gl.createBuffer();
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, objectData.normalsBuffer);
+            this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(normals), this.gl.STATIC_DRAW);
+        }
+        if (indices == null || indices == undefined)
+        {
+            //objectData.indicesBuffer = this.gl.createBuffer();
+            this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, objectData.indicesBuffer);
+            this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), this.gl.STATIC_DRAW);
+        }
+        if (colors != null && colors != undefined)
+        {
+            //objectData.colorsBuffer = this.gl.createBuffer();
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, objectData.colorsBuffer);
+            this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(colors), this.gl.STATIC_DRAW);
+        }
+
+        return objectID;
+    }
     setObjectPosition(objectID, position = new vec4(), y=0, z=0)
     {
         const objectData = this.objects.get(objectID);
@@ -662,7 +764,7 @@ class EasyGL {
         const objectData = this.objects.get(objectID);
         if (objectData == null) { console.log("Object: "+objectID+" does not exist. Cannot set rotation."); return;}
         if (!(rotation instanceof vec4)) {
-            rotation = new vec4(rotation, y, z, a);
+            rotation = new vec4(rotation, y, z, 1);
         }
         objectData.rotation = rotation.copy();
 
@@ -679,7 +781,7 @@ class EasyGL {
         const objectData = this.objects.get(objectID);
         if (objectData == null) { console.log("Object: "+objectID+" does not exist. Cannot set scale."); return;}
         if (!(scale instanceof vec4)) {
-            scale = new vec4(scale, y, z, a);
+            scale = new vec4(scale, y, z);
         }
         objectData.scale = scale.copy();
 
@@ -691,6 +793,39 @@ class EasyGL {
         objectData.objectMatrix = tmat.mul(rmat.mul(smat));*/
         objectData.objectMatrix = new mat4().makeTranslationRotationScale(objectData.position, objectData.rotation, objectData.scale);
     }
+    setObjectColor(objectID, color = new vec4(1,.2,0,1))
+    {
+        const objectData = this.objects.get(objectID);
+        if (objectData == null) { console.log("Object: "+objectID+" does not exist. Cannot set color."); return;}
+        if (!(color instanceof vec4) && !(color instanceof Array)) {
+            console.error("Needs vec4 as color"); return objectID;
+        }
+        if (color instanceof vec4)
+        {
+            //create color array
+            let length = objectData.vertices.length/3;
+            objectData.colors = [];
+            for (let i=0; i<length; i++)
+            {
+                objectData.colors.push(color.x, color.y, color.z, color.a);
+            }
+
+            //bindBuffer
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, objectData.colorsBuffer);
+            this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(objectData.colors), this.gl.STATIC_DRAW);
+        } else if (color instanceof Array)
+        {
+            objectData.colors = color;
+
+            //bindBuffer
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, objectData.colorsBuffer);
+            this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(objectData.colors), this.gl.STATIC_DRAW);
+        } else {
+            console.error("Needs color as a vec4 or Array");
+        }
+        return objectID;
+    }
+
 
     //Object Accessors
     getObjectPosition(objectID) //get position of object, given objectID
@@ -710,6 +845,21 @@ class EasyGL {
         const objectData = this.objects.get(objectID);
         if (objectData == null) { console.error("Object: "+objectID+" does not exist. Cannot get scale."); return;}
         return objectData.scale.copy();
+    }
+    getObjectData(objectID) //get all data for object
+    {
+        const objectData = this.objects.get(objectID);
+        if (objectData == null) { console.error("Object: "+objectID+" does not exist. Cannot get data."); return;}
+        return objectData;
+    }
+
+
+    //Listeners for HTML elements
+    resizeListener(event) //call this every time the window is resized
+    {
+        let bb = this.htmlCanvasElement.getBoundingClientRect();
+        this.htmlCanvasElement.width = bb.width;
+        this.htmlCanvasElement.height = bb.height;
     }
 
 
@@ -739,12 +889,6 @@ class EasyGL {
         this.directionalLightingDirection = direction.copy();
         this.directionalLightingDirection.scaleToUnit();
         this._initShader();
-    }
-    resizeListener(event) //call this every time the window is resized
-    {
-        let bb = this.htmlCanvasElement.getBoundingClientRect();
-        this.htmlCanvasElement.width = bb.width;
-        this.htmlCanvasElement.height = bb.height;
     }
     enableRenderingReverseFaces(enable = true) //enables rendering faces & triangles not facing the camera (for transparent objects)
     {
@@ -792,3 +936,10 @@ const cubeColors = [
     0.5,0.5,0.5,1, 0.5,0.5,0.5,1, 0.5,0.5,0.5,1, 0.5,0.5,0.5,1,
     0.5,0.5,0.5,1, 0.5,0.5,0.5,1, 0.5,0.5,0.5,1, 0.5,0.5,0.5,1,
 ];
+
+//Flat triangle
+const triangleVertices = [-1,-1,0, 0,1,0, 1,-1,0];
+const triangleIndices = [0,1,2];
+const triangleNormals = [0,0,1, 0,0,1, 0,0,1];
+const triangleColors = [1,0,0,1, 0,1,0,1, 0,0,1,1];
+

@@ -684,13 +684,12 @@ class vec4 {
         if (x instanceof vec4)
         {
             return new vec4(this.x+x.x, this.y+x.y, this.z+x.z, this.a+x.a);
-        } else {
-            if (isNaN(x)) { x = 0;}
-            if (isNaN(y)) { y = 0;}
-            if (isNaN(z)) { z = 0;}
-            if (isNaN(a)) { a = 0;}
-            return new vec4(this.x+x, this.y+y, this.z+z, this.a+a);
         }
+        if (isNaN(x)) { x = 0;}
+        if (isNaN(y)) { y = 0;}
+        if (isNaN(z)) { z = 0;}
+        if (isNaN(a)) { a = 0;}
+        return new vec4(this.x+x, this.y+y, this.z+z, this.a+a); 
     }
     addi(x,y=0,z=0,a=0)
     {
@@ -701,32 +700,32 @@ class vec4 {
             this.y += x.y;
             this.z += x.z;
             this.a += x.a;
-        } else {
-            if (isNaN(x)) { x = 0;}
-            if (isNaN(y)) { y = 0;}
-            if (isNaN(z)) { z = 0;}
-            if (isNaN(a)) { a = 0;}
-            //return new vec4(this.x+x, this.y+y, this.z+z, this.a+a);
-            this.x += x;
-            this.y += y;
-            this.z += z;
-            this.a += a;
+            return this;
         }
+
+        if (isNaN(x)) { x = 0;}
+        if (isNaN(y)) { y = 0;}
+        if (isNaN(z)) { z = 0;}
+        if (isNaN(a)) { a = 0;}
+        //return new vec4(this.x+x, this.y+y, this.z+z, this.a+a);
+        this.x += x;
+        this.y += y;
+        this.z += z;
+        this.a += a;
+
         return this;
     }
     sub(x,y,z,a)
     {
-        //console.log("x: " + x + "  y: " + y + "  z: " + z + "  a: " + a);
         if (x instanceof vec4)
         {
             return new vec4(this.x-x.x, this.y-x.y, this.z-x.z, this.a-x.a);
-        } else {
-            if (isNaN(x)) { x = 0;}
-            if (isNaN(y)) { y = 0;}
-            if (isNaN(z)) { z = 0;}
-            if (isNaN(a)) { a = 0;}
-            return new vec4(this.x-x, this.y-y, this.z-z, this.a-a);
         }
+        if (isNaN(x)) { x = 0;}
+        if (isNaN(y)) { y = 0;}
+        if (isNaN(z)) { z = 0;}
+        if (isNaN(a)) { a = 0;}
+        return new vec4(this.x-x, this.y-y, this.z-z, this.a-a); 
     }
     subi(x,y=0,z=0,a=0)
     {
@@ -737,27 +736,26 @@ class vec4 {
             this.y -= x.y;
             this.z -= x.z;
             this.a -= x.a;
-        } else {
-            if (isNaN(x)) { x = 0;}
-            if (isNaN(y)) { y = 0;}
-            if (isNaN(z)) { z = 0;}
-            if (isNaN(a)) { a = 0;}
-            //return new vec4(this.x+x, this.y+y, this.z+z, this.a+a);
-            this.x -= x;
-            this.y -= y;
-            this.z -= z;
-            this.a -= a;
+            return this;
         }
+        if (isNaN(x)) { x = 0;}
+        if (isNaN(y)) { y = 0;}
+        if (isNaN(z)) { z = 0;}
+        if (isNaN(a)) { a = 0;}
+        //return new vec4(this.x+x, this.y+y, this.z+z, this.a+a);
+        this.x -= x;
+        this.y -= y;
+        this.z -= z;
+        this.a -= a;
         return this;
     }
     mul(x,y=null,z=null,a=null)
     {
-        //console.log("x: " + x + "  y: " + y + "  z: " + z + "  a: " + a);
         if (x instanceof vec4)
         {
             //multiply by vector
             return new vec4(this.x*x.x, this.y*x.y, this.z*x.z, this.a*x.a);
-        } else if ( !isNaN(Number(x)) && y == null && z == null && a == null) {
+        } else if ( !isNaN(x) && y == null && z == null && a == null) {
             //multiply by scalar
             return new vec4(this.x*x, this.y*x, this.z*x, this.a*x);
         } else if (x instanceof mat4)
@@ -800,12 +798,6 @@ class vec4 {
             this.a = this.a*a;
         }
         return this;
-    }
-    mulScalar(n)
-    {
-        //depricated
-        console.error("vec4.mulScalar is depricated. Just use mul() and pass 1 Number.");
-        return new vec4(this.x*n, this.y*n, this.z*n, this.a*n);
     }
     dot(vec)
     {
@@ -873,7 +865,6 @@ class vec4 {
         var p = 3;
         var s = "< " + (Math.round(this.x/roundToValue)*roundToValue).toPrecision(p)+", "+ (Math.round(this.y/roundToValue)*roundToValue).toPrecision(p)+", "+ (Math.round(this.z/roundToValue)*roundToValue).toPrecision(p)+", "+ (Math.round(this.a/roundToValue)*roundToValue).toPrecision(p)+">";
         return s;
-        return "[ "+this.x.toPrecision(p)+", "+this.y.toPrecision(p)+", "+this.z.toPrecision(p)+", "+this.a.toPrecision(p)+" ]";
     }
     equals(otherVec4)
     {
@@ -899,7 +890,6 @@ function distanceBetweenPoints(v1,v2) //ONLY is for x y z NO a.
 {
     return Math.sqrt(  Math.abs(Math.pow(v1.x-v2.x,2)) + Math.abs(Math.pow(v1.y-v2.y,2)) + Math.abs(Math.pow(v1.z-v2.z,2))  );
 }
-
 function vectorFromPointToPlane(planePoint, planeNormal, pointPosition, unitVecFromPoint)
 {
     //u = x + (n dot (p-x))/(n dot v) * v
@@ -932,26 +922,27 @@ function vectorFromPointToPlane(planePoint, planeNormal, pointPosition, unitVecF
         }
     }
 }
-
-function getRotationFromRotationMatrix(mat = new mat4().makeRotation()){
-    //console.error("IDK IF THIS WORKS");
-    var rot = new vec4();
-    rot.y = Math.asin(-mat.f32a[2]);
-    const cb = Math.cos(rot.y);
-    const ca = mat.f32a[0]/cb;
-    rot.x = Math.acos(ca);
-    const cy = mat.f32a[10]/cb;
-    rot.z = Math.acos(cy);
-    return rot;
+function getRotationFromRotationMatrix(mat = new mat4().makeRotation()){ 
+    //THis is used in FPC.js to calculate the rotation matrix
+    let sy = Math.sqrt( mat.f32a[0]*mat.f32a[0] + mat.f32a[1]*mat.f32a[1]  );
+    if (sy > 0.000001)
+    {
+        const z = Math.atan2( mat.f32a[6], mat.f32a[10] );
+        const y = Math.atan2( -mat.f32a[2], sy );
+        const x = Math.atan2( mat.f32a[1], mat.f32a[0] );
+        return new vec4(x,y,z);
+    }
+    const z = Math.atan2( -mat.f32a[9], mat.f32a[5] );
+    const y = Math.atan2( -mat.f32a[2], sy );
+    const x = 0;
+    return new vec4(x,y,z)
 }
-
 function distanceFromPointToRay(rayStart = new vec4(), rayDirection = new vec4(), point = new vec4())
 {
     let t = (point.sub(rayStart)).dot(rayDirection) / rayDirection.dot(rayDirection);
     let p2 = rayStart.add(rayDirection.mul(t));
     return point.sub(p2).getMagnitude();
 }
-
 function closestPointOnRayToRay(constraintRayDirection, constraintRayStart, ray2Direction, ray2Start)
 {
     // d = sqrt( ( )
@@ -996,7 +987,6 @@ function closestPointOnRayToRay(constraintRayDirection, constraintRayStart, ray2
 
     return constraintRayStart.add(constraintRayDirection.mul(t));
 }
-
 function distToClosestPointOnRayToRay(constraintRayDirection, constraintRayStart, ray2Direction, ray2Start)
 {
     // d = sqrt( ( )
@@ -1058,8 +1048,6 @@ function distToRayPlaneIntersection(planeNormal = new vec4(), planePoint = new v
     }
     return NaN;
 }
-
-
 function pointLineSegmentIntersectsPlane(planeNormal = new vec4(), planePoint = new vec4(), linePoint1, linePoint2)
 {
     let rayD = linePoint2.sub(linePoint1);
@@ -1074,8 +1062,6 @@ function pointLineSegmentIntersectsPlane(planeNormal = new vec4(), planePoint = 
     }
     return null;
 }
-
-
 function closeTo(n1=1, n2=10, delta = 0.000001)
 {
     return (Math.abs(n1-n2) < delta);

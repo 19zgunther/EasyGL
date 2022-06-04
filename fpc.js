@@ -7,11 +7,13 @@
 *       Ex: 
 *           document.addEventListener('keydown', function(e) {
 *               fpc.eventListener(e);
-*           });
+*           }); for each event
 *       Or Add this:
 *           ['keydown', 'keyup', 'mousedown','mouseup','mousemove'].forEach( function(eventType) {
 *                canvasElement.addEventListener(eventType, function(event) {fpc.eventListener(event)});
 *            });
+*       
+*       Call update() to update position and rotation, generally every render frame.
 */
 
 
@@ -76,6 +78,7 @@ class FPC {
             this.position.y -= mspeed;
         }
 
+        
         if (this.pressedKeys.get('arrowright') == true)
         {
             this.viewMatNeedsUpdate = true;
@@ -89,13 +92,20 @@ class FPC {
         if (this.pressedKeys.get('arrowup') == true)
         {
             this.viewMatNeedsUpdate = true;
-            this.rotation.x -= rspeed;
+            this.rotation.z -= rspeed;
         }
         if (this.pressedKeys.get('arrowdown') == true)
         {
             this.viewMatNeedsUpdate = true;
-            this.rotation.x += rspeed;
+            this.rotation.z += rspeed;
         }
+        /*
+        if (this.pressedKeys.get('u') == true) {this.rotation.x += rspeed;}
+        if (this.pressedKeys.get('j') == true) {this.rotation.x -= rspeed;}
+        if (this.pressedKeys.get('i') == true) {this.rotation.y += rspeed;}
+        if (this.pressedKeys.get('k') == true) {this.rotation.y -= rspeed;}
+        if (this.pressedKeys.get('o') == true) {this.rotation.z += rspeed;}
+        if (this.pressedKeys.get('l') == true) {this.rotation.z -= rspeed;}*/
     }
     setPosition(pos=new vec4(), y=0,z=0)
     {
@@ -118,43 +128,27 @@ class FPC {
         return this.position.copy();
     }
     getRotation()
-    {
-        /*let v = new vec4(0,0,1);
-        let yMat = new mat4().makeRotation(0, this.rotation.y, 0);
-        let xMat = new mat4().makeRotation(this.rotation.x, 0, 0);
-        v = yMat.mul(v);
-        console.log(v);*/
-        //console.error("not implemented properly");
-        //return this.rotation;
-        //let ry = this.rotation.y;
-        //let rx = this.rotation.x * 1;//Math.cos(ry);
-        //let rz = 0;
-        //console.log(ry);
-        //return new vec4( 0 , ry, rx );
-        /*
-        let yMat = new mat4().makeRotation(0,this.rotation.y, 0);
-        let xMat = new mat4().makeRotation(0,0,this.rotation.x, 0, 0);
+    {        
+        const yMat = new mat4().makeRotation(0,this.rotation.y, 0);
+        const xMat = new mat4().makeRotation(0,0,this.rotation.z);
         this.rotationMatrix = xMat.mul(yMat);
-        let f32a = this.rotationMatrix.getFloat32Array();
-        //let rx = Math.atan2( f32a[] )
-
         let r = getRotationFromRotationMatrix(this.rotationMatrix);
-        console.log(r.toString(0.1))*/
-        return this.rotation;
+        return r;
     }
     getViewMatrix()
     {
+        console.error("FPC.getViewMatrix(). DO NOT USE THIS FUNCTION.");
+        return;
         if (this.viewMatNeedsUpdate == true)
         {
             this.translationMatrix.makeTranslation(-this.position.x, -this.position.y, this.position.z);
-            let yMat = new mat4().makeRotation(0,this.rotation.y, 0);
-            let xMat = new mat4().makeRotation(0,0,this.rotation.x, 0, 0);
-            this.rotationMatrix = xMat.mul(yMat);
+            const yMat = new mat4().makeRotation(0,this.rotation.y, 0);
+            const zMat = new mat4().makeRotation(0,0,this.rotation.x);
+            this.rotationMatrix = zMat.mul(yMat);
             this.viewMatNeedsUpdate = false;
         }
         return this.rotationMatrix.mul( this.translationMatrix );
     }
-
     eventListener(event)
     {
         switch (event.type)
@@ -168,7 +162,7 @@ class FPC {
                 {
                     this.viewMatNeedsUpdate = true;
                     this.rotation.y -= event.movementX*this.mouseSensitivityMultiplier/1000;
-                    this.rotation.x -= event.movementY*this.mouseSensitivityMultiplier/1000;
+                    this.rotation.z -= event.movementY*this.mouseSensitivityMultiplier/1000;
                 }
                 break;
         }
@@ -200,3 +194,60 @@ class FPC {
         return this.mouseSensitivityMultiplier;
     }
 }
+
+
+/*
+
+//FOR y, YMAT
+const y = 0;
+const b = y;
+const a = 0;
+const sa = Math.sin(0) = 0;
+const ca = Math.cos(0) = 1;
+const sb = Math.sin(y);
+const cb = Math.cos(y);
+const sy = Math.sin(0) = 0;
+const cy = Math.cos(0) = 1;
+
+const rot = [
+    cy,   0,   sy,  0,
+    0,    1,   0,   0,
+    -sy,  0,   cy,  0,
+    0,    0,    0,  1,
+];
+
+
+//FOR z, ZMAT
+const y = rotation.z;
+const b = 0;
+const a = 0;
+const sa = 0;
+const ca = 1;
+const sb = 0;
+const cb = 1;
+const sy = Math.sin(y);
+const cy = Math.cos(y);
+
+const rot = [
+    1,   0,   0,   0,
+    0,   cy,  sy,   0,
+    0,   sy,  cy,   0,
+    0,   0,    0,   1,
+];
+
+
+
+ZMAT x YMAT
+1,   0,   0,   0,         cy,   0,   sy,  0,
+0,   cz,  sz,   0,   x     0,    1,   0,   0,
+0,   sz,  cz,   0,        -sy,  0,   cy,  0,
+0,   0,    0,   1,         0,    0,    0,  1,
+
+
+cy,      0,   sy,     0,
+-sz*sy, cz,   sz*cy,  0,
+-cz*sy, sz,   cz*cy,  0, 
+0,       0,    0,     1, 
+
+
+*/
