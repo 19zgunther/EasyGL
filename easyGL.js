@@ -92,6 +92,7 @@ class EasyGL {
         uniform mat4 uProjectionMatrix;
         uniform mat4 uViewMatrix;
         uniform mat4 uObjectMatrix;
+        uniform mat4 uObjectRotationMatrix;
         varying highp vec4 color;
         void main() {
             vec4 vPos = vec4(aVertexPosition.x, aVertexPosition.y, aVertexPosition.z, 1.0);
@@ -105,7 +106,8 @@ class EasyGL {
             const x = this.directionalLightingDirection.x.toPrecision(4); //directional lighting direction
             const y = this.directionalLightingDirection.y.toPrecision(4);
             const z = this.directionalLightingDirection.z.toPrecision(4);
-            vsSource +=`float scalar = dot(aNormalVector.xyz, vec3(`+x+`, `+y+`, `+z+`))*`+scale+` + `+offset+`;
+            
+            vsSource +=`float scalar = dot((uObjectRotationMatrix * aNormalVector).xyz, vec3(`+x+`, `+y+`, `+z+`))*`+scale+` + `+offset+`;
             color = aColor * scalar;
             color.w = aColor.w;}`;
         } else {
@@ -147,6 +149,7 @@ class EasyGL {
                 projectionMatrix: this.gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
                 viewMatrix: this.gl.getUniformLocation(shaderProgram, 'uViewMatrix'),
                 objectMatrix: this.gl.getUniformLocation(shaderProgram, 'uObjectMatrix'),
+                objectRotationMatrix: this.gl.getUniformLocation(shaderProgram, 'uObjectRotationMatrix'),
             },
         };
 
@@ -265,6 +268,7 @@ class EasyGL {
         this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.projectionMatrix,  false, this.projectionMatrix.getFloat32Array());
         this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.viewMatrix, false, this.viewMatrix.getFloat32Array());
         this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.objectMatrix, false, objectData.objectMatrix.getFloat32Array());
+        this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.objectRotationMatrix, false, objectData.objectRotationMatrix.getFloat32Array());
 
         //RENDER////////////////////////////////////////////////
         this.gl.drawElements(this.gl.TRIANGLES, objectData.indices.length, this.gl.UNSIGNED_SHORT, 0);
@@ -495,7 +499,7 @@ class EasyGL {
         const smat = new mat4().makeScale(scale);
         const objectMatrix = tmat.mul(rmat.mul(smat));*/
         const objectMatrix = new mat4().makeTranslationRotationScale(position, rotation, scale);
-
+        const objectRotationMatrix = new mat4().makeRotation(rotation);
         //Save data to this.objects Map/Dictionary
         const objectData = {
             id: objectID,
@@ -508,6 +512,7 @@ class EasyGL {
             rotation: rotation.copy(),
             scale: scale.copy(),
             objectMatrix: objectMatrix,
+            objectRotationMatrix: objectRotationMatrix,
 
             verticesBuffer: verticesBuffer,
             indicesBuffer: indicesBuffer, 
@@ -603,6 +608,7 @@ class EasyGL {
         const smat = new mat4().makeScale(scale);
         const objectMatrix = tmat.mul(rmat.mul(smat));*/
         const objectMatrix = new mat4().makeTranslationRotationScale(position, rotation, scale);
+        const objectRotationMatrix = new mat4().makeRotation(rotation);
 
         //Save data to this.objects Map/Dictionary
         const objectData = {
@@ -616,6 +622,7 @@ class EasyGL {
             rotation: rotation.copy(),
             scale: scale.copy(),
             objectMatrix: objectMatrix,
+            objectRotationMatrix: objectRotationMatrix,
 
             verticesBuffer: verticesBuffer,
             indicesBuffer: indicesBuffer, 
@@ -757,7 +764,7 @@ class EasyGL {
         const rmat = new mat4().makeRotation(objectData.rotation);
         const smat = new mat4().makeScale(objectData.scale);
         objectData.objectMatrix = tmat.mul(rmat.mul(smat));*/
-        objectData.objectMatrix = new mat4().makeTranslationRotationScale(objectData.position, objectData.rotation, objectData.scale);
+        objectData.objectMatrix.makeTranslationRotationScale(objectData.position, objectData.rotation, objectData.scale);
     }
     setObjectRotation(objectID, rotation = new vec4(), y=0, z=0)
     {
@@ -773,8 +780,11 @@ class EasyGL {
         const tmat = new mat4().makeTranslation(objectData.position);
         const rmat = new mat4().makeRotation(objectData.rotation);
         const smat = new mat4().makeScale(objectData.scale);
-        objectData.objectMatrix = tmat.mul(rmat.mul(smat)); */   
-        objectData.objectMatrix = new mat4().makeTranslationRotationScale(objectData.position, objectData.rotation, objectData.scale);
+        objectData.objectMatrix = tmat.mul(rmat.mul(smat));
+        objectData.objectRotationMatrix = rmat;*/
+        
+        objectData.objectMatrix.makeTranslationRotationScale(objectData.position, objectData.rotation, objectData.scale);
+        objectData.objectRotationMatrix.makeRotation(objectData.rotation);
     }
     setObjectScale(objectID, scale = new vec4(), y=0, z=0)
     {
@@ -791,7 +801,7 @@ class EasyGL {
         const rmat = new mat4().makeRotation(objectData.rotation);
         const smat = new mat4().makeScale(objectData.scale);
         objectData.objectMatrix = tmat.mul(rmat.mul(smat));*/
-        objectData.objectMatrix = new mat4().makeTranslationRotationScale(objectData.position, objectData.rotation, objectData.scale);
+        objectData.objectMatrix.makeTranslationRotationScale(objectData.position, objectData.rotation, objectData.scale);
     }
     setObjectColor(objectID, color = new vec4(1,.2,0,1))
     {
@@ -923,10 +933,11 @@ const cubeIndices = [
 const cubeNormals = [
     0,0,1, 0,0,1, 0,0,1, 0,0,1,
     0,0,-1, 0,0,-1, 0,0,-1, 0,0,-1,
-    0,1,0, 0,1,0, 0,1,0, 0,1,0,
-    -1,0,0, -1,0,0, -1,0,0, -1,0,0, //left
-    1,0,0, 1,0,0, 1,0,0, 1,0,0, //right
+    0,1,0, 0,1,0, 0,1,0, 0,1,0, //top
+    -1,0,0, -1,0,0, -1,0,0, -1,0,0, //right
+    1,0,0, 1,0,0, 1,0,0, 1,0,0, //let
     0,-1,0, 0,-1,0, 0,-1,0, 0,-1,0, //bottom
+    
 ];
 const cubeColors = [
     0.5,0.5,0.5,1, 0.5,0.5,0.5,1, 0.5,0.5,0.5,1, 0.5,0.5,0.5,1,

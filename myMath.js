@@ -275,11 +275,17 @@ class mat4 {
         const sy = Math.sin(y);
         const cy = Math.cos(y);
 
-        const rot = [
+        /*const rot = [
             ca*cb,   ca*sb*sy-sa*cy,   ca*sb*cy+sa*sy,   0,
             sa*cb,   sa*sb*sy+ca*cy,   sa*sb*cy-ca*sy,   0,
             -sb,     cb*sy,            cb*cy,            0,
             0,       0,                0,                1,
+        ];*/
+        const rot = [
+            ca*cb,                     sa*cb,              -sb,            0,
+            ca*sb*sy-sa*cy,   sa*sb*sy+ca*cy,              cb*sy,            0,
+            ca*sb*cy+sa*sy,          sa*sb*cy-ca*sy,        cb*cy,            0,
+            0,                            0,                0,                1,
         ];
 
         const f2 = [ //rotation * scale

@@ -27,9 +27,34 @@
     }
 }*/
 
+const canvasElement = document.getElementById( "testCanvas" );
+const easygl = new EasyGL( canvasElement );
+easygl.setPerspective();
+easygl.createObject( 'myObject1' );
+easygl.createObject( 'myObject2' );
+easygl.createObject( 'myObject3' );
+easygl.setObjectPosition( 'myObject1', 1, 1, 1,);
+easygl.setObjectPosition( 'myObject2', -1, -1, -1,);
+easygl.setObjectRotation( 'myObject1', 0.8, .1, 1);
+easygl.setObjectColor( 'myObject1', new vec4(1,0,0,1));
+easygl.setObjectColor( 'myObject2', new vec4(0,1,0,1));
+easygl.setObjectColor( 'myObject3', new vec4(0,0,1,1));
+
+let t=0;
+let updateInterval = setInterval( update, 20 );
+function update() {
+    t += 0.03;
+    easygl.setObjectRotation( 'myObject2', t,t,t);
+    easygl.setCameraPosition( 4*Math.cos(t), 0, 4*Math.sin(t) );
+    easygl.setCameraRotation( 0, -t -Math.PI/2, 0);
+    easygl.clear();
+    easygl.renderAll();
+}
+
 
 
 {
+    throw 'shallNotPass';
     //INIT///////////////////////////////////////////////////////////////
     //This is abasic test program to test the EasyGL & FPC libraries
     //First, get the canvas element
