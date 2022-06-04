@@ -27,6 +27,7 @@
     }
 }*/
 
+/*
 const canvasElement = document.getElementById( "testCanvas" );
 const easygl = new EasyGL( canvasElement );
 easygl.setPerspective();
@@ -49,12 +50,11 @@ function update() {
     easygl.setCameraRotation( 0, -t -Math.PI/2, 0);
     easygl.clear();
     easygl.renderAll();
-}
+}*/
 
 
 
 {
-    throw 'shallNotPass';
     //INIT///////////////////////////////////////////////////////////////
     //This is abasic test program to test the EasyGL & FPC libraries
     //First, get the canvas element
@@ -80,9 +80,6 @@ function update() {
 
     //Set some basic parameters for the EasyGL instance
     gl.setPerspective(); //set to default perspective mode values
-    gl.setAmbientLightLevel();
-    gl.setCameraPosition();
-    gl.setDirectionalLightingDirection();
 
     //Create some EasyGL objects
     gl.createObject(0, new vec4(0,0,2), null, null, [-0.7,0,0, 0.7,0,0, 0,1,0],  [0,1,2],  [1,0,0, 0,1,0, 0,0,1], [1,0,0,1, 1,1,0,1, 1,0,1,1]);
@@ -90,6 +87,8 @@ function update() {
     gl.createObject('myCube', new vec4(2,0,0), new vec4(0,3.14/4), new vec4(1,2,3));
     gl.createObject(null, new vec4(-2), null, null, undefined, undefined, undefined, new vec4(1,0,0,.1));
     gl.createObject(null, new vec4(0,2,0), null, null, undefined, undefined, undefined, new vec4(0,1,0,1));
+
+    fpc.setPosition(0, 2, -4);
 
     //RUN////////////////////////////////////////////////////////////////////////////////////
     //The update loop runs every frame
