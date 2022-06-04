@@ -6,6 +6,7 @@ webgl-capable browser (most current browsers)
 
 ## Examples:
 ### Rotating Cube
+![](https://github.com/19zgunther/EasyGL/blob/main/resources/rotatingCubeExample.gif)
 ```
 const canvasElement = document.getElementById( "myCanvas" );
 const easygl = new EasyGL( canvasElement );
@@ -24,6 +25,7 @@ function update() {
 ```
 
 ### Rotating Sun
+![](https://github.com/19zgunther/EasyGL/blob/main/resources/rotatingSunExample.gif)
 ```
 const canvasElement = document.getElementById( "myCanvas" );
 const easygl = new EasyGL( canvasElement );
@@ -46,7 +48,7 @@ function update() {
 ```
 
 ### Rotating Camera
-![](https://github.com/19zgunther/EasyGL/resources/rotatingCameraExample.gif)
+![](https://github.com/19zgunther/EasyGL/blob/main/resources/rotatingCameraExample.gif)
 ```
 const canvasElement = document.getElementById( "testCanvas" );
 const easygl = new EasyGL( canvasElement );
