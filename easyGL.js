@@ -24,8 +24,8 @@ class EasyGL {
         if (htmlCanvasElement == null) { console.error("Cannot instantiate GL object without canvasElement"); return null;}
         this.htmlCanvasElement = htmlCanvasElement;
         let bb = this.htmlCanvasElement.getBoundingClientRect();
-        this.htmlCanvasElement.width = bb.width;
-        this.htmlCanvasElement.height = bb.height;
+        this.htmlCanvasElement.width = Math.round(bb.width);
+        this.htmlCanvasElement.height = Math.round(bb.height);
 
         this.gl = htmlCanvasElement.getContext('webgl');
         //Make sure this.webgl is instance of WebGlRenderingContext
@@ -58,11 +58,17 @@ class EasyGL {
         this.objects = new Map();
         this.objectIDs = [];
 
-        //Initialize Shader
+        //Initialize Shader - following are set in _initShader()
         this.programInfo = null;
         this.shaderProgram = null;
         this.pickerProgramInfo = null;
         this.pickerShaderProgram = null;
+        
+        //Init Picker - 
+        this.pickerFrameBuffer = null; //Set in _initPickerShader - frameBuffer for rendering to for picker
+        this.pickerTexture = null; //Set in _initPickerShader - texture in frameBuffer ^
+        this.pickerDepthBuffer = null; //^ depth buffer also needs to be stored
+
         this._initShader();
         this._initPickerShader();
         this.clear();
@@ -164,7 +170,7 @@ class EasyGL {
     }
     _initPickerShader() //initialize shader for object picker
     {
-        let vsSource = `
+        const vsSource = `
         attribute vec4 aVertexPosition;
         uniform mat4 uProjectionMatrix;
         uniform mat4 uViewMatrix;
@@ -179,6 +185,7 @@ class EasyGL {
         uniform vec4 uColorVector;
         void main() {
             gl_FragColor = uColorVector;
+            //gl_FragColor = vec4(0.5,0,1,1);
         }
         `;
         const vertexShader = this.__loadShader(this.gl.VERTEX_SHADER, vsSource);
@@ -212,6 +219,32 @@ class EasyGL {
 
         this.pickerShaderProgram = shaderProgram;
         this.pickerProgramInfo = programInfo;
+
+
+        //Now for the framebuffer stuff...
+         this.pickerFrameBuffer = this.gl.createFramebuffer();
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER,  this.pickerFrameBuffer);
+
+        this.pickerTexture = this.gl.createTexture();
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.pickerTexture);
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.htmlCanvasElement.width, this.htmlCanvasElement.height, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, null);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+
+        // attach the texture as the first color attachment
+        this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_2D, this.pickerTexture, 0);
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER,  this.pickerFrameBuffer);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.pickerTexture);
+
+        this.pickerDepthBuffer = this.gl.createRenderbuffer();
+        this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, this.pickerDepthBuffer);
+        this.gl.renderbufferStorage(this.gl.RENDERBUFFER, this.gl.DEPTH_COMPONENT16, this.htmlCanvasElement.width, this.htmlCanvasElement.height);
+        this.gl.framebufferRenderbuffer(this.gl.FRAMEBUFFER, this.gl.DEPTH_ATTACHMENT, this.gl.RENDERBUFFER, this.pickerDepthBuffer);
+
+
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+
     }
 
 
@@ -928,8 +961,19 @@ class EasyGL {
     resizeListener(event) //call this every time the window is resized
     {
         let bb = this.htmlCanvasElement.getBoundingClientRect();
-        this.htmlCanvasElement.width = bb.width;
-        this.htmlCanvasElement.height = bb.height;
+        this.htmlCanvasElement.width = Math.round(bb.width);
+        this.htmlCanvasElement.height = Math.round(bb.height);
+
+        //resize picker...
+        this.gl.bindFramebuffer(gl.FRAMEBUFFER,  this.pickerFrameBuffer);
+
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.pickerTexture);
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.htmlCanvasElement.width, this.htmlCanvasElement.height, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, null);
+
+        this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, this.pickerDepthBuffer);
+        this.gl.renderbufferStorage(this.gl.RENDERBUFFER, this.gl.DEPTH_COMPONENT16, this.htmlCanvasElement.width, this.htmlCanvasElement.height);
+
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
     }
 
 
@@ -983,6 +1027,102 @@ class EasyGL {
         if (isNaN(z) == true ) {z=0.5;}
         if (isNaN(a) == true ) {a=1;}
         this.clearColor = new vec4(color, y, z, a);
+    }
+    getObjectFromScreen(canvasPixelX, canvasPixelY)
+    {
+        //Bind gl FrameBuffer
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.pickerFrameBuffer);
+
+        //Clear frameBuffer
+        this.gl.clearColor(1, 1, 1, 1);    // Clear to white, fully opaque
+        this.gl.clearDepth(1);
+        this.gl.enable(this.gl.DEPTH_TEST);
+        this.gl.depthFunc(this.gl.LESS);
+        this.gl.enable(this.gl.CULL_FACE);
+        this.gl.depthMask(true);
+        this.gl.disable(this.gl.BLEND);
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+
+        let color = new vec4(0,0,0,1);
+
+        //render all objects to texture
+        for (let i=0; i<this.objectIDs.length; i++)
+        {
+            const multiple = Math.floor(i/255);   
+            color.y = multiple/255;
+            color.x = (i-multiple*255)/255;
+
+            const objectData = this.objects.get(this.objectIDs[i]);
+            
+            this.gl.useProgram(this.pickerProgramInfo.program);
+
+            //BIND BUFFERS ///////////////////////////////////////////
+            //Bind Vertices Buffer
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, objectData.verticesBuffer);
+            this.gl.vertexAttribPointer(this.pickerProgramInfo.attribLocations.vertexLocation, 3, this.gl.FLOAT, false, 0, 0);
+            this.gl.enableVertexAttribArray(this.pickerProgramInfo.attribLocations.vertexLocation);
+
+            //Bind Normals Buffer
+            //this.gl.bindBuffer(this.gl.ARRAY_BUFFER, objectData.normalsBuffer);
+            //this.gl.vertexAttribPointer(this.pickerProgramInfo.attribLocations.normalLocation, 3, this.gl.FLOAT, false, 0, 0);
+            //this.gl.enableVertexAttribArray(this.pickerProgramInfo.attribLocations.normalLocation);
+
+            //Bind Colors Buffer
+            //this.gl.bindBuffer(this.gl.ARRAY_BUFFER, objectData.colorsBuffer);
+            //this.gl.vertexAttribPointer(this.pickerProgramInfo.attribLocations.colorLocation, 4, this.gl.FLOAT, false, 0, 0);
+            //this.gl.enableVertexAttribArray(this.pickerProgramInfo.attribLocations.colorLocation);
+
+            //Bind Indices
+            this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, objectData.indicesBuffer);
+
+            
+            //BIND UNIFORMS////////////////////////////////////////
+            // Set the shader uniforms
+            this.gl.uniformMatrix4fv(this.pickerProgramInfo.uniformLocations.projectionMatrix,  false, this.projectionMatrix.getFloat32Array());
+            this.gl.uniformMatrix4fv(this.pickerProgramInfo.uniformLocations.viewMatrix, false, this.viewMatrix.getFloat32Array());
+            this.gl.uniformMatrix4fv(this.pickerProgramInfo.uniformLocations.objectMatrix, false, objectData.objectMatrix.getFloat32Array());
+            //uColorVector
+            this.gl.uniform4fv(this.pickerProgramInfo.uniformLocations.colorVector, color.getFloat32Array());
+            //this.gl.uniform4fv(this.pickerProgramInfo.uniformLocations.lightDirectionVector, this.directionalLightingDirection.getFloat32Array());
+
+            //RENDER////////////////////////////////////////////////
+            this.gl.drawElements(this.gl.TRIANGLES, objectData.indices.length, this.gl.UNSIGNED_SHORT, 0);
+        }
+
+        //create buffer for pixel
+        let pixels = new Uint8Array(4);
+
+        let x = Math.min(Math.max(Math.round(canvasPixelX), 1), this.htmlCanvasElement.width-1);
+        let y = Math.min(Math.max(Math.round( this.htmlCanvasElement.height - canvasPixelY), 1), this.htmlCanvasElement.height-1);
+
+        //console.log(x,y);
+
+        //Read Pixels
+        this.gl.readPixels(x, y, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE, pixels);
+
+
+
+        //Detach framebuffer
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+        color.x = pixels[0];
+        color.y = pixels[1];
+        //console.log(color, pixels);
+
+        /*
+        const multiple = Math.floor(i/255);   
+            color.y = multiple/255;
+            color.x = (i-multiple*255)/255;*/
+        
+        const I = color.y * 255 + color.x;
+        console.log(color);
+        console.log(I);
+
+        if (0 <= I && I < this.objectIDs.length)
+        {
+            return this.objectIDs[I];
+        } 
+        return null;
+
     }
 
 }

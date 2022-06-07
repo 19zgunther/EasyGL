@@ -71,8 +71,18 @@ function update() {
         document.addEventListener(e, function(event) {fpc.eventListener(event)});
     });
     ['mousedown','mouseup','mousemove'].forEach( function(e) {
-        canvasElement.addEventListener(e, function(event) {fpc.eventListener(event)});
+        canvasElement.addEventListener(e, function(event) {fpc.eventListener(event);
+        });
     });
+
+    canvasElement.addEventListener('mousedown', function(event)
+    {
+        //console.log(event);
+        let x = event.offsetX;
+        let y = event.offsetY;
+        let ret = gl.getObjectFromScreen(x,y);
+        console.log(ret);
+    })
     
     //add event listener for window resize, so the gl canvas can be resized
     window.addEventListener('resize', function(event) {gl.resizeListener(event)} )
