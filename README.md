@@ -1,5 +1,5 @@
-# EasyGL
-A library built on webgl which makes rendering 3d objects and scenes quick and easy to do. Use predefined shapes or make your own (vertex & indice form), and easily move and arrange them and the camera in 3D space.
+# EasyGL - EasyWebGL
+A library built in javascript on webgl which makes rendering 3d objects and scenes quick and easy to do. Use predefined shapes or make your own (vertex & indice form), and easily move and arrange them and the camera in 3D space.
 
 Go to https://zgunther.com/easyGL/easyGL.html to view a few live demos!
 
